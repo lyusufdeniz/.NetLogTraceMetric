@@ -21,52 +21,52 @@
 
 ## Observability nedir?
 
-Observability (Gözlemlenebilirlik), bir sistemin iç durumunu dışarıdan gözlemleyebilme ve anlayabilme yeteneğidir. Log, Trace ve Metric gibi telemetri verilerini kullanarak sistemin davranışını, performansını ve sağlığını izlemek ve sorunları tespit etmek için kullanılır.
+Observability (Gözlemlenebilirlik), .NET uygulamanızın iç durumunu dışarıdan gözlemleyebilme yeteneğidir. `ILogger`, `Activity` ve `Meter` gibi .NET API'lerini kullanarak sistemin davranışını, performansını ve sağlığını izlemek için kullanılır.
 
 ## Log + Trace + Metric
 
-Log, Trace ve Metric, observability'nin üç temel sütununu oluşturur. Log, uygulamanın belirli anlardaki durumunu ve olaylarını kaydeder. Trace, bir işlemin baştan sona tüm adımlarını ve servisler arası ilişkilerini takip eder. Metric ise sistemin performans ölçümlerini, sayısal değerlerini ve istatistiklerini toplar. Bu üçü birlikte kullanıldığında, sistemin tam bir görünümünü sağlar.
+.NET'te Log (`ILogger`), Trace (`System.Diagnostics.Activity`) ve Metric (`System.Diagnostics.Metrics.Meter`) observability'nin üç temel sütununu oluşturur. Örnek: `logger.LogInformation("User logged in")` log kaydı, `Activity.Start()` trace başlatır, `meter.CreateCounter<int>("requests")` metrik toplar.
 
 
 ## OpenTelemetry
 
-OpenTelemetry, telemetri verilerini (log, trace, metric) toplamak, işlemek ve export etmek için açık kaynaklı, vendor-agnostic bir standart ve araç setidir. Farklı diller ve platformlar için SDK'lar sağlar ve telemetri verilerini çeşitli backend sistemlerine (Jaeger, Zipkin, Prometheus vb.) gönderebilir.
+OpenTelemetry .NET SDK, `System.Diagnostics` API'lerini kullanarak telemetri verilerini toplar ve export eder. NuGet paketleri (`OpenTelemetry.Exporter.Jaeger`, `OpenTelemetry.Exporter.Zipkin`) ile Jaeger, Zipkin gibi backend'lere gönderilir. Örnek: `services.AddOpenTelemetry().WithTracing(builder => builder.AddJaegerExporter())`
 
 ## Jaeger ve Zipkin nedir?
 
-Jaeger ve Zipkin, distributed tracing için kullanılan açık kaynaklı trace görselleştirme ve analiz platformlarıdır. Jaeger, Uber tarafından geliştirilmiş modern bir trace sistemi iken, Zipkin, Twitter tarafından geliştirilmiş ve daha uzun süredir kullanılan bir sistemdir. Her ikisi de trace verilerini toplar, saklar ve görselleştirir, böylece dağıtılmış sistemlerde bir isteğin tüm servisler arasındaki yolculuğunu takip edebilirsiniz.
+Jaeger ve Zipkin, .NET uygulamalarından gelen `Activity` verilerini görselleştiren trace platformlarıdır. .NET'te `OpenTelemetry.Exporter.Jaeger` veya `OpenTelemetry.Exporter.Zipkin` NuGet paketleri ile entegre edilir. Örnek: `builder.AddJaegerExporter(options => options.Endpoint = new Uri("http://localhost:14268/api/traces"))`
 
 ## Temel Kavramlar
 
 ### Log nedir?
-Log (Günlük), bir uygulamanın çalışma sırasında gerçekleşen olayları, hataları ve bilgilendirme mesajlarını zaman damgası ile kaydeden kayıt sistemidir. Uygulamanın durumunu izlemek, hataları tespit etmek ve sistem davranışını analiz etmek için kullanılır.
+.NET'te log, `ILogger` interface'i ile yapılır. `logger.LogInformation("Processing request")`, `logger.LogError(ex, "Error occurred")` gibi çağrılarla olaylar kaydedilir. Serilog, NLog gibi provider'lar ile dosyaya, veritabanına veya cloud servislere yazılabilir.
 
 ### Tracing nedir?
-Tracing (İzleme), bir uygulamanın çalışma sırasında işlemlerin ve isteklerin nasıl ilerlediğini takip etme ve kaydetme sürecidir. Dağıtılmış sistemlerde bir isteğin farklı servisler arasında nasıl ilerlediğini görselleştirmek ve performans sorunlarını tespit etmek için kullanılır.
+.NET'te tracing, `System.Diagnostics.Activity` sınıfı ile yapılır. `ActivitySource` ile başlatılan `Activity` nesneleri, bir işlemin baştan sona tüm adımlarını takip eder. Örnek: `using var activity = activitySource.StartActivity("ProcessOrder")` ile bir işlem izlenmeye başlar.
 
 ### Log ve Trace Farkı
-Log, uygulamanın belirli anlardaki durumunu ve olaylarını kaydeden bağımsız mesajlardır, genellikle tek bir noktada ne olduğunu gösterir. Trace ise bir işlemin baştan sona tüm adımlarını, span'ler arasındaki ilişkileri ve zamanlamayı içeren yapılandırılmış bir izleme sistemidir; dağıtılmış sistemlerde bir isteğin tüm servisler arasındaki yolculuğunu takip eder.
+.NET'te log (`ILogger`) bağımsız mesajlardır: `logger.LogInformation("User logged in")`. Trace (`Activity`) ise yapılandırılmış bir süreçtir: `using var activity = activitySource.StartActivity("Login")` ile başlar, `activity.Stop()` ile biter ve tüm adımları zaman damgası ile kaydeder.
 
 ### Resource nedir?
-Resource (Kaynak), telemetri verilerinin toplandığı uygulama veya servisi tanımlayan bilgilerdir. Servis adı, versiyon, host bilgisi gibi metadata içerir ve tüm telemetri verilerinin hangi kaynaktan geldiğini belirler.
+.NET'te Resource, OpenTelemetry ile telemetri verilerinin kaynağını tanımlar. Örnek: `ResourceBuilder.CreateDefault().AddService("MyService", "1.0.0").AddAttributes(new[] { new KeyValuePair<string, object>("host.name", Environment.MachineName) })` ile servis adı, versiyon ve host bilgisi eklenir.
 
 ### ActivitySource nedir?
-ActivitySource, Activity nesnelerini oluşturmak için kullanılan bir fabrika sınıfıdır. Aynı ActivitySource'u kullanan Activity'ler, aynı kaynak adı altında gruplandırılır ve telemetri toplama sistemlerinde birlikte görüntülenir.
+.NET'te `ActivitySource`, `Activity` nesnelerini oluşturan fabrika sınıfıdır. Örnek: `var activitySource = new ActivitySource("MyCompany.MyService")` ile oluşturulur, `activitySource.StartActivity("OperationName")` ile yeni activity başlatılır. Aynı source'dan gelen activity'ler birlikte gruplandırılır.
 
 ### Span nedir?
-Span, bir işlemin veya operasyonun başlangıcından bitişine kadar olan süreyi temsil eden temel izleme birimidir. Her span, bir işlemin ne kadar sürdüğünü, hangi adımları içerdiğini ve diğer span'lerle ilişkisini kaydeder.
+.NET'te Span, `Activity` sınıfı ile temsil edilir. `using var span = activitySource.StartActivity("DatabaseQuery")` ile başlar, `span.Stop()` ile biter. Her span, süreyi, ilişkileri ve iç adımları kaydeder. OpenTelemetry'de Activity otomatik olarak Span'e dönüştürülür.
 
 ### Activity (Span) Kind nedir?
-Activity Kind, bir span'in sistem içindeki rolünü ve davranışını belirten bir özelliktir. Client, Server, Producer, Consumer, Internal gibi türleri vardır ve span'in isteği başlatan mı yoksa alan mı olduğunu gösterir.
+.NET'te `ActivityKind` enum'u ile belirlenir: `ActivityKind.Server` (gelen istek), `ActivityKind.Client` (giden istek), `ActivityKind.Internal` (iç işlem). Örnek: `activitySource.StartActivity("HttpRequest", ActivityKind.Server)` ile server-side activity oluşturulur.
 
 ### Event nedir?
-Event (Olay), bir span içinde gerçekleşen önemli anları veya durum değişikliklerini temsil eden zaman damgalı kayıtlardır. Span'in zaman çizelgesi üzerinde belirli noktalarda ne olduğunu detaylandırmak için kullanılır.
+.NET'te `Activity.AddEvent()` ile span içine event eklenir. Örnek: `activity.AddEvent(new ActivityEvent("Cache miss", tags: new ActivityTagsCollection { { "key", "user:123" } }))` ile span zaman çizelgesinde önemli anlar işaretlenir.
 
 ### Activity (Span) Status nedir?
-Activity Status, bir span'in başarılı mı yoksa başarısız mı tamamlandığını gösteren durum bilgisidir. Ok (başarılı), Error (hata) veya Unset (belirlenmemiş) değerlerini alabilir ve hata ayıklama için kritik bilgi sağlar.
+.NET'te `Activity.SetStatus()` ile belirlenir: `ActivityStatusCode.Ok` (başarılı), `ActivityStatusCode.Error` (hata), `ActivityStatusCode.Unset` (belirlenmemiş). Örnek: `activity.SetStatus(ActivityStatusCode.Error, "Database connection failed")` ile hata durumu işaretlenir.
 
 ### Tag nedir?
-Tag (Etiket), bir span'e veya telemetri verisine eklenen key-value çiftleridir. İşlem hakkında ek bağlamsal bilgi sağlar (örneğin HTTP metodu, veritabanı sorgusu, kullanıcı ID'si) ve filtreleme ve sorgulama için kullanılır.
+.NET'te `Activity.SetTag()` ile key-value çiftleri eklenir. Örnek: `activity.SetTag("http.method", "GET")`, `activity.SetTag("user.id", userId)`. Bu tag'ler OpenTelemetry ile export edilir ve Jaeger/Zipkin'de filtreleme için kullanılır.
 
 ### Correlations (In-Process)
-Correlations (Korelasyonlar), aynı işlem içinde farklı Activity'lerin birbirleriyle ilişkilendirilmesi mekanizmasıdır. Parent-child ilişkileri kurarak, bir işlemin farklı bileşenlerinin nasıl birbirine bağlandığını ve hiyerarşik olarak nasıl organize olduğunu gösterir.
+.NET'te aynı process içinde `Activity` nesneleri otomatik olarak parent-child ilişkisi kurar. `Activity.Current` ile mevcut activity'ye erişilir, yeni activity başlatıldığında otomatik olarak parent olur. Örnek: `using var child = activitySource.StartActivity("ChildOperation")` mevcut activity'nin child'ı olur.
