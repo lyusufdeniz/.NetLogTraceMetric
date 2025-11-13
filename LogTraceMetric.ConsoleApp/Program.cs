@@ -3,7 +3,7 @@ using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 //create tracer provider
-var traceProvider = Sdk.CreateTracerProviderBuilder().
+var traceProvider = Sdk.CreateTracerProviderBuilder().AddSource(OpenTelemetryConstant.ActivitySourceName).
     ConfigureResource(conf => conf.AddService(OpenTelemetryConstant.ServiceName, serviceVersion: OpenTelemetryConstant.ServiceVersion).
     AddAttributes(new List<KeyValuePair<string,object>>()
     {
